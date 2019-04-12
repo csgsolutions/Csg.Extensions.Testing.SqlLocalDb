@@ -12,7 +12,6 @@ steps:
   inputs:
     scriptName: build.ps1
     arguments: '-BuildNumber $(Build.BuildNumber) -NoTest'
-- steps:
 - task: DotNetCoreCLI@2
   displayName: 'dotnet test'
   inputs:
