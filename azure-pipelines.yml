@@ -1,0 +1,34 @@
+pool:
+  vmImage: 'vs2017-win2016'
+  demands: msbuild
+
+trigger:
+- master
+- rel/*
+
+steps:
+- task: PowerShell@1
+  displayName: 'Build + Test'
+  inputs:
+    scriptName: build.ps1
+    arguments: '-BuildNumber $(Build.BuildNumber) -NoTest'
+- steps:
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet test'
+  inputs:
+    command: test
+    projects: 'tests\**\*Test.csproj'
+    arguments: '--no-build --configuration Release'
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifacts-classlib'
+  inputs:
+    PathtoPublish: src/Csg.Extensions.Testing.SqlLocalDb/bin/Release
+    ArtifactName: classlib
+- powershell: |
+   $BuildNumber=$env:BUILD_BUILDNUMBER
+   [xml]$xml = Get-Content .\version.props
+   $versionPrefix = $xml.Project.PropertyGroup.VersionPrefix
+   $versionSuffix = $xml.Project.PropertyGroup.VersionSuffix[0]
+   Write-Output "##vso[build.updatebuildnumber]$versionPrefix-$versionSuffix-$BuildNumber"
+  displayName: 'Set Build Number'
+  condition: succeededOrFailed()
