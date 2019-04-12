@@ -18,7 +18,7 @@ $Solution =  "$(Get-Item -Path *.sln | Select-Object -First 1)"
 $OutputPackages = @(
 	".\src\Csg.Extensions.Testing.SqlLocalDb\Csg.Extensions.Testing.SqlLocalDb.csproj"
 )
-$TestProjects = Get-Item -Path tests\**\*Tests.csproj | %{ $_.FullName }
+$TestProjects = @() #Get-Item -Path tests\**\*Tests.csproj | %{ $_.FullName }
 
 Write-Host "=============================================================================="
 Write-Host "The Build Script"
