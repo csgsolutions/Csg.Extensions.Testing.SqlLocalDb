@@ -1,13 +1,9 @@
 name: $(Rev:rrrrr)
-
 pool:
-  vmImage: 'vs2017-win2016'
-  demands: msbuild
-
+  name: CSG OnPrem VS2019
 trigger:
 - master
 - rel/*
-
 steps:
 - task: PowerShell@1
   displayName: 'Build + Test'
