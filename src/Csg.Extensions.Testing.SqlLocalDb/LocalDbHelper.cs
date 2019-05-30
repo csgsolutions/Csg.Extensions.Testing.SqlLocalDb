@@ -8,7 +8,8 @@ namespace Csg.Extensions.Testing.SqlLocalDb
     public static class LocalDbHelper
     {
         public static string DataPath = @"%LOCALAPPDATA%\LocalDb";
-        
+        public static string LocalDbExe = "sqllocaldb.exe";
+
         private static bool TryFindFirstPath(IEnumerable<string> paths, out string matchingPath)
         {
             foreach (var path in paths)
@@ -27,8 +28,6 @@ namespace Csg.Extensions.Testing.SqlLocalDb
 
         private static int Exec(string cmd, string arguments, bool useCmd = true, System.IO.StreamWriter output = null)
         {
-
-
             string fileName = useCmd ? "cmd.exe" : cmd;
             string args = useCmd ? string.Concat("/c ", cmd, " ",arguments): arguments;
 
@@ -76,7 +75,7 @@ namespace Csg.Extensions.Testing.SqlLocalDb
 
         public static void CreateInstance(string instanceName)
         {
-            Exec("sqllocaldb.exe", $"create {instanceName} -s");
+            Exec(LocalDbExe, $"create {instanceName} -s");
             string dataPath = System.IO.Path.Combine(Environment.ExpandEnvironmentVariables(DataPath), instanceName);
 
             if (!System.IO.Directory.Exists(dataPath))
@@ -120,14 +119,18 @@ LOG ON ( Name = {dbName}_log, FILENAME = '{dataPath}\{dbName}_log.ldf')
             {
                 conn.Open();
                 var cmd = conn.CreateCommand();
-                cmd.CommandText = $"IF EXISTS (SELECT 1 FROM sys.databases WHERE [name]='{databaseName}') DROP DATABASE [{databaseName}];";
+                cmd.CommandText = $@"
+IF EXISTS (SELECT 1 FROM sys.databases WHERE [name]='{databaseName}') BEGIN
+    ALTER DATABASE [{databaseName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE [{databaseName}];
+END";
                 cmd.ExecuteNonQuery();
             }
         }
 
         public static void StopInstance(string instanceName)
         {
-            int resultCode = Exec("sqllocaldb.exe", $"stop {instanceName} -k");
+            int resultCode = Exec(LocalDbExe, $"stop {instanceName} -k");
 
             if (resultCode != 0)
             {
@@ -139,7 +142,7 @@ LOG ON ( Name = {dbName}_log, FILENAME = '{dataPath}\{dbName}_log.ldf')
         {
             StopInstance(instanceName);
 
-            var resultCode = Exec("sqllocaldb.exe", $"delete {instanceName}");
+            var resultCode = Exec(LocalDbExe, $"delete {instanceName}");
             if (resultCode != 0)
             {
                 throw new Exception($"sqllocaldb.exe delete result code {resultCode}");
@@ -150,6 +153,19 @@ LOG ON ( Name = {dbName}_log, FILENAME = '{dataPath}\{dbName}_log.ldf')
             foreach (var file in files)
             {
                 System.IO.File.Delete(file);
+            }
+        }
+
+        public static bool TryDeleteInstance(string instanceName, bool deleteFiles = true)
+        {
+            try
+            {
+                DeleteInstance(instanceName, deleteFiles: deleteFiles);
+                return true;
+            }
+            catch
+            {
+                return false;
             }
         }
     }
